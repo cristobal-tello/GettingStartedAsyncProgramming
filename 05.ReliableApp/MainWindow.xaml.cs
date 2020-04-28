@@ -78,21 +78,117 @@ namespace _05.ReliableApp
             //    MessageBox.Show(ex.Message);
             //}
 
-            // Comment previous code
-            // Dont forget to add async to this 
+            //// Comment previous code
+            //// Dont forget to add async to this method 
+            //try
+            //{
+            //    await GetFeedWithExceptionFixedBetterAsync();
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
+
+
+            //// Comment previous code
+            //// Dont forget to add async to this method 
+
+
+            ////This way will be best
+            //// All UI changes are done in the main thread
+            //// Async job return some info that will be "paint" in the main thread
+            //try
+            //{
+            //    RssButton.IsEnabled = false;
+            //    BusyIndicator.Visibility = Visibility.Visible;
+
+            //    var feedText = await GetOnlyFeedNoCallToUIInAsync();
+
+            //    RssText.Text = feedText;
+            //}
+            //catch(Exception)
+            //{
+            //    RssText.Text = "Invalid call getting the feed";
+            //}
+            //finally
+            //{
+            //    RssButton.IsEnabled = true;
+            //    BusyIndicator.Visibility = Visibility.Hidden;
+            //}
+
+
+            //This way will be best
+            // All UI changes are done in the main thread
+            // Async job return some info that will be "paint" in the main thread
             try
             {
-                await GetFeedWithExceptionFixedBetterAsync();
+                RssButton.IsEnabled = false;
+                BusyIndicator.Visibility = Visibility.Visible;
+
+                var feedText = await GetOnlyFeedNoCallToUIWhenAllAsync();
+
+                RssText.Text = feedText;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message);
+                RssText.Text = "Invalid call getting the feed";
+            }
+            finally
+            {
+                RssButton.IsEnabled = true;
+                BusyIndicator.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private async Task<string> GetOnlyFeedNoCallToUIWhenAllAsync()
+        {
+            // This method is like GetOnlyFeedNoCallToUIInAsync 
+            // Only shows how to use WhenAll 
+            try
+            {
+                var task1 = Task.Run(() =>
+                    {
+                        var webClient = new WebClient();
+                        return webClient.DownloadString("http://rss.elmundo.es/rss/");
+                    }
+                );
+
+                var task2 = Task.Delay(2000);
+                var task3 = Task.Delay(3000);
+
+                await Task.WhenAll(task1, task2, task3);
+
+                return task1.Result;
+            }
+            catch(Exception)
+            {
+                return "Error. Cannot get the feed";
+            }
+}
+
+        private async Task<string> GetOnlyFeedNoCallToUIInAsync()
+        {
+            // This method is like GetFeedWithExceptionFixedBetterAsync but only return an string that will use later on the caller method
+            try
+            {
+                var result = await Task.Run(() =>
+                    {
+                        var webClient = new WebClient();
+                        return webClient.DownloadString("http://rss.elmundo.es/rss/");
+                    }
+                );
+
+                return result;
+            }
+            catch(Exception)
+            {
+                return "Error. Cannot get the feed";
             }
         }
 
         private async Task GetFeedWithExceptionFixedBetterAsync()
         {
-            // The method who call this method needs to be async and the call needs to use await
+            // The method who calls needs to be async and the call needs to use await
             // This way, you will get the exception
             throw new UnauthorizedAccessException();
 
